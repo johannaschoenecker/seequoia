@@ -43,15 +43,23 @@ function icon(kind) {
   return icons[kind];
 }
 
+// The old form's credit box was "email or name"; never put an address on the
+// public map. Admins still see it on the Review card.
+const publicCredit = (s) => (s && !/@/.test(s)) ? s : '';
+
 export function popupHtml(t, opts = {}) {
   const photos = (t.photoUrls || []).length ? t.photoUrls : (t.photoUrl ? [t.photoUrl] : []);
+  // First photo large, the rest as thumbnails; tap any to open full size.
   const photoHtml = photos.length
-    ? `<div class="pop__photos">${photos.map(u =>
-        `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join('')}</div>`
+    ? `<a class="pop__hero" href="${esc(photos[0])}" target="_blank" rel="noopener"><img src="${esc(photos[0])}" alt="${esc(t.name || 'Sequoia')}" loading="lazy"></a>
+       ${photos.length > 1 ? `<div class="pop__photos">${photos.slice(1).map(u =>
+         `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join('')}</div>` : ''}`
     : '';
-  const links = (t.photoLinks || []).length
+  // Legacy Google-Form uploads live in Drive and cannot be embedded; show them
+  // as links only until an admin re-uploads them via the Review tab.
+  const links = !photos.length && (t.photoLinks || []).length
     ? `<div class="pop__links">${t.photoLinks.map((u, i) =>
-        `<a href="${esc(u)}" target="_blank" rel="noopener">Photo ${i + 1}</a>`).join(' · ')}</div>`
+        `<a href="${esc(u)}" target="_blank" rel="noopener">Photo ${i + 1} ↗</a>`).join(' · ')}</div>`
     : '';
   const facts = [];
   if (t.treeCount > 1) facts.push(`${t.treeCount} trees`);
@@ -70,7 +78,7 @@ export function popupHtml(t, opts = {}) {
     ${t.notes ? `<div class="pop__notes">${esc(t.notes)}</div>` : ''}
     ${photoHtml}${links}
     <div class="pop__foot">
-      ${t.contributor ? `<span>Found by ${esc(t.contributor)}</span> · ` : ''}
+      ${publicCredit(t.contributor) ? `<span>Found by ${esc(publicCredit(t.contributor))}</span> · ` : ''}
       <span>${fmtDate(t.createdAt)}</span>
       ${opts.distM != null ? ` · <span>${fmtDistance(opts.distM)} away</span>` : ''}
     </div>

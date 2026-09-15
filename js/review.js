@@ -8,7 +8,9 @@
 import { ACCESS, CONDITION, STATUS } from './config.js';
 import * as Cloud from './cloud.js';
 import * as Legacy from './legacy.js';
-import { esc, fmtDate } from './map.js';
+import * as Photo from './photo.js';
+import { QUALITY } from './config.js';
+import { esc } from './map.js';
 
 const fmtWhen = (t) => t ? new Date(t).toLocaleString('en-GB',
   { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '?';
@@ -20,16 +22,23 @@ const options = (vocab, current, allowEmpty) =>
 
 function photosHtml(r) {
   const urls = (r.photoUrls || []).length ? r.photoUrls : (r.photoUrl ? [r.photoUrl] : []);
+  let html;
   if (urls.length) {
-    return `<a href="${esc(urls[0])}" target="_blank" rel="noopener"><img src="${esc(urls[0])}" alt="Submitted photo" loading="lazy"></a>
+    html = `<a href="${esc(urls[0])}" target="_blank" rel="noopener"><img src="${esc(urls[0])}" alt="Submitted photo" loading="lazy"></a>
       ${urls.length > 1 ? `<div class="more">${urls.slice(1).map(u =>
         `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join('')}</div>` : ''}`;
-  }
-  if ((r.photoLinks || []).length) {
-    return `<div class="review-card__nophoto">${r.photoLinks.map((u, i) =>
+  } else if ((r.photoLinks || []).length) {
+    html = `<div class="review-card__nophoto"><span class="muted">Drive links from the old form:</span>${r.photoLinks.map((u, i) =>
       `<a href="${esc(u)}" target="_blank" rel="noopener">Photo ${i + 1} ↗</a>`).join('<br>')}</div>`;
+  } else {
+    html = '<div class="review-card__nophoto">no photo</div>';
   }
-  return '<div class="review-card__nophoto">no photo</div>';
+  const room = Math.max(0, QUALITY.maxPhotos - urls.length);
+  if (room) {
+    html += `<label class="btn btn--sm review-card__add">Add photo${room > 1 ? 's' : ''}
+      <input type="file" accept="image/*" ${room > 1 ? 'multiple' : ''} data-act="photos" hidden></label>`;
+  }
+  return html;
 }
 
 function card(r, { onShowOnMap, onDecide, mode }) {
@@ -84,7 +93,27 @@ function card(r, { onShowOnMap, onDecide, mode }) {
   const note = () => el.querySelector('[data-f="reviewNote"]').value.trim();
 
   el.querySelector('[data-act="map"]').addEventListener('click', () => onShowOnMap(r));
-  el.querySelectorAll('[data-act]').forEach((btn) => {
+
+  const photoInput = el.querySelector('[data-act="photos"]');
+  if (photoInput) photoInput.addEventListener('change', async () => {
+    const files = Array.from(photoInput.files || []).slice(0, QUALITY.maxPhotos - (r.photoUrls || []).length);
+    photoInput.value = '';
+    if (!files.length) return;
+    const btns = el.querySelectorAll('button');
+    btns.forEach(b => { b.disabled = true; });
+    try {
+      const blobs = [];
+      for (const f of files) blobs.push(await Photo.shrink(f));
+      await onDecide(r, 'photos', { blobs });
+      // Re-render this card with the new photo list.
+      el.replaceWith(card(r, { onShowOnMap, onDecide, mode }));
+    } catch (err) {
+      btns.forEach(b => { b.disabled = false; });
+      throw err;
+    }
+  });
+
+  el.querySelectorAll('button[data-act]').forEach((btn) => {
     const act = btn.dataset.act;
     if (act === 'map') return;
     btn.addEventListener('click', async () => {
@@ -154,7 +183,14 @@ export async function open(host, helpers) {
   const msg = host.querySelector('#review-msg');
   const say = (t) => { msg.textContent = t; };
 
-  const onDecide = async (r, act, { fields, note }) => {
+  const onDecide = async (r, act, { fields, note, blobs }) => {
+    if (act === 'photos') {
+      const urls = await Cloud.addPhotos(r, blobs, (m) => helpers.toast(m, 6000));
+      r.photoUrls = urls; r.photoUrl = urls[0] || null; r.photoCount = urls.length;
+      helpers.toast(`${blobs.length} photo${blobs.length > 1 ? 's' : ''} added`);
+      helpers.onChanged && helpers.onChanged();
+      return;
+    }
     if (act === 'save') { await Cloud.updateTree(r.uuid, fields); helpers.toast('Saved'); }
     else if (act === 'delete') { await Cloud.deleteTree(r.uuid); helpers.toast('Deleted'); }
     else { await Cloud.review(r.uuid, act, { note, fields }); helpers.toast(`${fields.name}: ${STATUS[act].toLowerCase()}`); }

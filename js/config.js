@@ -90,7 +90,7 @@ export const QUALITY = {
 // copies every row into Firestore once. Set to '' once the import is done and
 // you have stopped the form.
 export const LEGACY = {
-  sheetCsvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT8eU3aMyb4r8CzgzSENw67McR_ljvxOW08LmBGC5akvChhzJ-HWII0GEYQxWp9WE2W9pnMAN8wWR-x/pub?gid=1748402674&single=true&output=csv',
+  sheetCsvUrl: '',   // import done 2026-09-15; the sheet is no longer read
 };
 
 // ---------------------------------------------------------------------------

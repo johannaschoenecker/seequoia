@@ -218,6 +218,27 @@ export async function review(uuid, status, { note = '', fields = {} } = {}) {
   });
 }
 
+/**
+ * Admin: attach more photos to an existing tree (e.g. re-uploading the
+ * Google-Form photos that only exist as Drive links). Objects are write-once,
+ * so new files continue the numbering after the ones already there.
+ */
+export async function addPhotos(tree, blobs, onProgress) {
+  const { db, fsMod } = await adminDb();
+  const { storage, stMod } = await init();
+  const urls = (tree.photoUrls || []).slice();
+  for (let i = 0; i < blobs.length; i++) {
+    onProgress && onProgress(`Uploading photo ${i + 1} of ${blobs.length}…`);
+    const ref = stMod.ref(storage, `photos/${tree.uuid}-${urls.length}.jpg`);
+    await stMod.uploadBytes(ref, blobs[i], { contentType: 'image/jpeg' });
+    urls.push(await stMod.getDownloadURL(ref));
+  }
+  await fsMod.updateDoc(fsMod.doc(db, 'trees', tree.uuid), {
+    photoUrls: urls, photoUrl: urls[0] || null, photoCount: urls.length, editedAt: Date.now(),
+  });
+  return urls;
+}
+
 export async function updateTree(uuid, fields) {
   const { db, fsMod } = await adminDb();
   await fsMod.updateDoc(fsMod.doc(db, 'trees', uuid), { ...fields, editedAt: Date.now() });

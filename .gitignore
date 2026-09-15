@@ -1,0 +1,8 @@
+# OS noise
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Local Firebase CLI state, if you ever install it
+.firebase/
+firebase-debug.log

@@ -1,0 +1,7 @@
+# Keep line endings sane across Windows/CI.
+* text=auto eol=lf
+
+# Binary: never touch these
+*.png  binary
+*.jpg  binary
+*.webp binary

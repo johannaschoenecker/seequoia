@@ -1,0 +1,93 @@
+rules_version = '2';
+
+// Se(e)quoia Firestore rules.
+//
+// Threat model: the app URL is public. Anyone may READ verified trees without
+// signing in (it is a public map). Anyone with a Google account may sign in
+// and SUBMIT a tree, which lands as pending_review. Only admins (uids listed
+// by hand in the `admins` collection) may verify, reject, edit or delete.
+//
+// Deploy: Firebase console > Firestore Database > Rules > paste > Publish
+//    or: firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function optNum(d, k, lo, hi) {
+      return !(k in d) || d[k] == null || (d[k] is number && d[k] >= lo && d[k] <= hi);
+    }
+
+    function optStr(d, k, max) {
+      return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= max);
+    }
+
+    function validTree(d) {
+      return d.keys().hasAll(['uuid','lat','lon','name','access','status','userId','createdAt'])
+        && d.uuid is string && d.uuid.size() > 8 && d.uuid.size() < 64
+        && d.lat is number && d.lat > 49.0 && d.lat < 61.0       // UK bounding box
+        && d.lon is number && d.lon > -9.0 && d.lon < 2.5
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 120
+        && d.access in ['public','path','paid','private','unknown']
+        && d.status in ['pending_review','verified','rejected']
+        && d.userId is string
+        && d.createdAt is number
+        && optStr(d, 'notes', 1000)
+        && optStr(d, 'contributor', 80)
+        && optStr(d, 'reviewNote', 500)
+        && optNum(d, 'treeCount', 1, 500)
+        && optNum(d, 'girthCm', 0, 3000)
+        && optNum(d, 'heightM', 0, 100)
+        && (!('condition' in d) || d.condition == null
+            || d.condition in ['healthy','damaged','dead','felled','unknown'])
+        && (!('photoUrls' in d) || (d.photoUrls is list && d.photoUrls.size() <= 3))
+        && (!('photoLinks' in d) || (d.photoLinks is list && d.photoLinks.size() <= 10));
+    }
+
+    match /trees/{uuid} {
+      // Public map: verified trees are readable by everyone, including
+      // anonymous visitors (the client queries `where status == 'verified'`).
+      // Contributors can always see their own submissions; admins see all.
+      allow read: if resource.data.status == 'verified'
+        || (signedIn() && resource.data.userId == request.auth.uid)
+        || isAdmin();
+
+      // Document id must equal the client-generated uuid, which makes retries
+      // idempotent and stops one user spraying thousands of documents.
+      // Ordinary users can only create pending records in their own name;
+      // admins may also create verified/rejected ones (the sheet import).
+      allow create: if signedIn()
+        && uuid == request.resource.data.uuid
+        && validTree(request.resource.data)
+        && (isAdmin()
+            || (request.resource.data.status == 'pending_review'
+                && request.resource.data.userId == request.auth.uid));
+
+      // Contributors may correct their own submission while it is unreviewed.
+      allow update: if (isAdmin() && validTree(request.resource.data))
+        || (signedIn()
+            && resource.data.userId == request.auth.uid
+            && resource.data.status == 'pending_review'
+            && request.resource.data.status == 'pending_review'
+            && request.resource.data.userId == resource.data.userId
+            && validTree(request.resource.data));
+
+      allow delete: if isAdmin();
+    }
+
+    // Admin allowlist. Add a document whose id is the user's uid, by hand,
+    // in the Firebase console. Nobody can grant themselves membership.
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}

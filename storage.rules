@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Se(e)quoia Cloud Storage rules.
+//
+// Photos are readable by anyone because the map is public. Uploads need a
+// signed-in user, are capped in size and type, and are write-once so nobody
+// can churn an object they own to run up costs. Deleting is console-only.
+//
+// Deploy: Firebase console > Storage > Rules > paste > Publish
+//    or: firebase deploy --only storage
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /photos/{fileName} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*')
+        && fileName.matches('[a-zA-Z0-9-]+\.jpg');
+
+      allow update, delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

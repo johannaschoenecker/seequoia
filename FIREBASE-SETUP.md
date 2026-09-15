@@ -1,60 +1,69 @@
-# Firebase setup — once, about 20 minutes
+# Firebase einrichten — einmalig, ca. 20 Minuten
 
-Everything happens in the browser at <https://console.firebase.google.com>.
-No CLI needed. Use a **separate project** from PeatProbe so the two apps' data,
-rules and billing stay apart.
+Alles passiert in der Browser-Konsole: <https://console.firebase.google.com>.
+Keine CLI nötig. Bitte ein **eigenes Projekt** anlegen, getrennt von PeatProbe,
+damit Daten, Regeln und Abrechnung der beiden Apps nicht vermischt werden.
 
-## 1. Create the project
+Die Konsole übersetzt nicht alle Begriffe — manches bleibt auch auf Deutsch
+englisch (z. B. „Firestore Database", „App Check"). Wo das deutsche Label
+abweichen könnte, steht das englische Original in Klammern.
 
-- **Add project** → name `sequoia-map` → Google Analytics **off**.
+## 1. Projekt anlegen
 
-## 2. Authentication (sign-in)
+- **„Projekt hinzufügen"** (Add project) → Name `seequoia` → Google Analytics
+  **AUS** (wird nicht gebraucht) → „Projekt erstellen"
 
-- Build → **Authentication** → Get started.
-- **Sign-in method** tab → **Google** → Enable → choose a support email → Save.
-- **Settings → Authorised domains → Add domain**:
-  - `johannaschoenecker.github.io` — without this, sign-in on the published
-    app fails **silently** (nothing happens when you tap Sign in).
-  - `localhost` is already there.
+## 2. Authentication (Anmeldung)
 
-## 3. Firestore (the database)
+- Menü „Erstellen" (Build) → **Authentication** → „Jetzt starten"
+- Tab **Anmeldemethode** (Sign-in method) → **Google** → Aktivieren →
+  Support-E-Mail wählen → Speichern
+- **Einstellungen → Autorisierte Domains → Domain hinzufügen:**
+  - `johannaschoenecker.github.io`  ← ohne diesen Eintrag schlägt die
+    Anmeldung in der veröffentlichten App **stumm** fehl (kein Fehler, beim
+    Tippen auf „Sign in" passiert einfach nichts)
+  - `localhost` steht schon drin
 
-- Build → **Firestore Database** → Create database.
-- Location: **europe-west2 (London)**. Cannot be changed later.
-- Start in **production mode**.
-- **Rules** tab → delete everything → paste the whole of `firestore.rules`
-  from this repo → **Publish**.
+## 3. Firestore (Datenbank)
 
-## 4. Storage (photos)
+- „Erstellen" → **Firestore Database** → „Datenbank erstellen"
+- Standort: **europe-west2 (London)** — lässt sich später **nicht** mehr ändern
+- Im **Produktionsmodus** starten (production mode)
+- Tab **Regeln** (Rules) → alles löschen → kompletten Inhalt von
+  `firestore.rules` aus diesem Repo einfügen → **Veröffentlichen** (Publish)
 
-- Build → **Storage** → Get started → same location.
-- Firebase will ask you to upgrade to the **Blaze** (pay-as-you-go) plan.
-  The free allowances almost certainly cover this app, but a card has to be on
-  file.
-- **Rules** tab → paste the whole of `storage.rules` → **Publish**.
+## 4. Storage (Fotos)
 
-## 5. Budget alert — do not skip
+- „Erstellen" → **Storage** → „Jetzt starten" → gleicher Standort
+- Dabei fordert Firebase ein Upgrade auf den **Blaze-Tarif** (nutzungsbasiert;
+  die Freikontingente reichen für diese App sehr wahrscheinlich aus, aber eine
+  Kreditkarte muss hinterlegt werden)
+- Tab **Regeln** → kompletten Inhalt von `storage.rules` einfügen →
+  **Veröffentlichen**
 
-- ⚙ → **Usage and billing** → Details & settings → set a budget alert at
-  about £5.
+## 5. Budgetwarnung — nicht überspringen!
 
-## 6. Get the web config
+- ⚙ → **Nutzung und Abrechnung** (Usage and billing) → Details & Einstellungen
+  → **Budgetwarnung bei ca. 5 € einrichten**
 
-- ⚙ → **Project settings** → Your apps → **</>** (Web) → nickname `sequoia` →
-  do **not** tick Firebase Hosting → Register app.
-- Copy the `firebaseConfig` object it shows.
+## 6. Web-Konfiguration holen
 
-## 7. Put it in the app
+- ⚙ → **Projekteinstellungen** (Project settings) → „Meine Apps" (Your apps)
+  → **</>**-Symbol (Web) → Spitzname `seequoia` → Firebase Hosting **nicht**
+  ankreuzen → „App registrieren"
+- Das angezeigte `firebaseConfig`-Objekt kopieren
 
-In `js/config.js` set `enabled: true` and paste the values:
+## 7. In die App eintragen
+
+In `js/config.js`: `enabled: true` setzen und die Werte einfügen:
 
 ```js
 export const FIREBASE = {
   enabled: true,
   config: {
-    apiKey: '...',            // public identifier, not a secret -
-    authDomain: '...',        // security lives in the rules
-    projectId: '...',
+    apiKey: '...',            // darf öffentlich sein - das ist eine Kennung,
+    authDomain: '...',        // kein Geheimnis; die Sicherheit steckt in den
+    projectId: '...',         // Regeln, nicht im Schlüssel
     storageBucket: '...',
     messagingSenderId: '...',
     appId: '...',
@@ -62,40 +71,50 @@ export const FIREBASE = {
 };
 ```
 
-## 8. Make yourself an admin
+Dann committen und pushen — ab jetzt zeigt die App oben rechts „Sign in".
 
-1. Open the app (localhost or the published one) → **Sign in** (top right)
-   with your Google account.
-2. Firebase console → Authentication → **Users** tab → copy your **User UID**.
-3. Firestore → **Start collection** → id `admins` → Document id = *paste your
-   UID* → add any field (e.g. `note: "me"`) → Save.
-4. Reload the app. The **Review** tab appears.
+## 8. Dich selbst zur Administratorin machen
 
-Nobody else can do this: the rules forbid all client writes to `admins`.
+1. Die App öffnen (localhost oder die veröffentlichte) → oben rechts
+   **Sign in** → mit deinem Google-Konto anmelden.
+2. Firebase-Konsole → Authentication → Tab **Nutzer** (Users) → deine
+   **Nutzer-UID** (User UID) kopieren
+3. Firestore → **„Sammlung starten"** (Start collection) → Sammlungs-ID
+   `admins` → Dokument-ID = *deine UID einfügen* → irgendein Feld anlegen
+   (z. B. `note` = `ich`) → Speichern
+4. App neu laden → der Tab **Review** erscheint.
 
-## 9. Import the existing trees
+Niemand sonst kann sich selbst eintragen: Die Regeln erlauben keinerlei
+Schreibzugriff von Clients auf `admins`.
 
-Review tab → **Import from Google Sheet**. It reads the published CSV, shows
-you how many rows it found, and writes them into Firestore with their existing
-approved / rejected status. Already-imported rows are skipped, so it is safe to
-run again if the sheet gains rows before you close the form.
+## 9. Bestehende Bäume importieren
 
-When you are done with the form, set `LEGACY.sheetCsvUrl` to `''` in
-`js/config.js`.
+Tab **Review** → **Import from Google Sheet**. Liest das veröffentlichte CSV,
+zeigt an, wie viele Zeilen gefunden wurden, und schreibt sie mit ihrem
+bisherigen Status (approved / rejected) nach Firestore. Bereits importierte
+Zeilen werden übersprungen — der Knopf ist also gefahrlos mehrfach nutzbar,
+falls das Sheet vor dem Schließen des Formulars noch Zeilen bekommt.
 
-## What you get
+Wenn das alte Google-Formular geschlossen ist: in `js/config.js`
+`LEGACY.sheetCsvUrl` auf `''` setzen.
 
-- Visitors see verified trees **without signing in**.
-- Contributors sign in with Google; submissions land in `trees` with
-  `status: pending_review`; photos in Storage under `photos/<uuid>-<n>.jpg`.
-- Review tab: approve, reject (with a private note), edit label / access /
-  notes, restore or delete rejected trees, export everything as CSV.
-- Email addresses are never stored on tree documents. To contact a
-  contributor, look up their `userId` under Authentication → Users.
+## Was du damit bekommst
 
-## Before volunteers arrive — still open
+- Besucher sehen verifizierte Bäume **ohne Anmeldung**.
+- Wer beitragen will, meldet sich mit Google an; Einreichungen landen in der
+  Sammlung `trees` mit `status: pending_review`, Fotos in Storage unter
+  `photos/<uuid>-<n>.jpg`.
+- Review-Tab: genehmigen, ablehnen (mit privater Notiz), Label / Zugang /
+  Notizen bearbeiten, abgelehnte Bäume zurückholen oder löschen, alles als CSV
+  exportieren.
+- E-Mail-Adressen werden nie an Baum-Dokumenten gespeichert. Um jemanden zu
+  kontaktieren: `userId` des Dokuments unter Authentication → Nutzer
+  nachschlagen.
 
-- **App Check** (Build → App Check, reCAPTCHA v3) blocks automated abuse of
-  the open endpoint. Then enable enforcement for Firestore and Storage.
-- A privacy notice / conversation with the data protection office if this is
-  run under the university's name.
+## Vor dem Freiwilligen-Start — noch offen
+
+- **App Check** („Erstellen" → App Check, reCAPTCHA v3) — blockiert
+  automatisierten Missbrauch des offenen Endpunkts. Danach die
+  **Erzwingung** (enforcement) für Firestore + Storage aktivieren.
+- Datenschutzhinweis bzw. Gespräch mit dem Datenschutzbüro, falls das
+  Projekt unter dem Namen der Universität läuft.

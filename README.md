@@ -5,8 +5,7 @@ Cambridge and across the UK. Anyone can explore the verified trees; anyone with 
 Google account can submit a new one; an admin checks each submission before it
 appears on the public map.
 
-Live: <https://johannaschoenecker.github.io/sequoia-map/> (once GitHub Pages is
-switched on, see below).
+Live: <https://johannaschoenecker.github.io/seequoia/>
 
 No build step. No npm. Plain ES modules, Leaflet, Firebase (loaded from Google's
 CDN on demand), and a service worker so the shell opens with no signal.
@@ -86,7 +85,7 @@ GitHub Pages serves straight from `main`:
 1. Push to `main`.
 2. Once only: repository **Settings → Pages → Source: Deploy from a branch →
    `main` / `/ (root)`**. The site appears at
-   `https://johannaschoenecker.github.io/sequoia-map/` after a minute or two.
+   `https://johannaschoenecker.github.io/seequoia/` after a minute or two.
 3. Add that hostname (`johannaschoenecker.github.io`) to Firebase →
    Authentication → Settings → Authorised domains, or sign-in fails silently.
 
@@ -118,6 +117,6 @@ verified tree with a photo costs roughly 150 kB per popup opened. If the map
 becomes popular, consider generating thumbnails (a Cloud Function or an
 offline script) and pointing `photoUrl` at them.
 
-Map tiles come from OpenStreetMap / CARTO / Esri public services under their
+Map tiles come from OpenStreetMap / OpenTopoMap / Esri public services under their
 fair-use terms. For very heavy traffic, switch `BASEMAPS` in `js/config.js` to
 a keyed provider (PeatProbe uses MapTiler).

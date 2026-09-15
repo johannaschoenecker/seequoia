@@ -18,7 +18,7 @@ service firebase.storage {
       allow create: if request.auth != null
         && request.resource.size < 3 * 1024 * 1024
         && request.resource.contentType.matches('image/.*')
-        && fileName.matches('[a-zA-Z0-9-]+\.jpg');
+        && fileName.matches('[a-zA-Z0-9-]+\\.jpg');
 
       allow update, delete: if false;
     }

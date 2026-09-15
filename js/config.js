@@ -102,13 +102,13 @@ export const LEGACY = {
 // These values are identifiers, not secrets - they are safe in a public repo.
 // All access control lives in firestore.rules / storage.rules.
 export const FIREBASE = {
-  enabled: false,
+  enabled: true,
   config: {
-    apiKey: '',
-    authDomain: '',
-    projectId: '',
-    storageBucket: '',
-    messagingSenderId: '',
-    appId: '',
+    apiKey: 'AIzaSyCjGaCMhM0llj-35LxTEJ1B-ThqJabkDeg',
+    authDomain: 'seequoia-5daea.firebaseapp.com',
+    projectId: 'seequoia-5daea',
+    storageBucket: 'seequoia-5daea.firebasestorage.app',
+    messagingSenderId: '222978844905',
+    appId: '1:222978844905:web:688e253328d91dfc14a878',
   },
 };

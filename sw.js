@@ -4,7 +4,7 @@
 // Bump VERSION whenever a JS or CSS file changes. Installed apps pick the
 // new version up on their second launch after a deploy.
 
-const VERSION = 'sequoia-v1';
+const VERSION = 'sequoia-v2';
 
 const SHELL = [
   './',
